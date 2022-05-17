@@ -6,7 +6,7 @@ library("numDeriv")
 library("matlib")
 #library("comprehenr")
 #library("Hmisc")
-"HrejadssdasadskaJKSjlklkHk"
+"HrejadssdasadSjlklkHk"
 logLikeFunc <- function(X,kappa,theta,sigma2){
   "
   Tager daglig data og retunere loglikelihood funktionsv?rdien,
