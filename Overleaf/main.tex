@@ -1,5 +1,4 @@
-% Deze template is gemaakt door Fons van der Plas (f.vanderplas@student.ru.nl) voor het publiek domein en mag gebruikt worden **zonder vermelding van zijn naam**.
-% This template was created by Fons van der Plas (f.vanderplas@student.ru.nl) for the public domain, and may be used **without attribution**.
+
 \documentclass{article}
 \usepackage[utf8]{inputenc}     % for éô
 \usepackage[danish]{babel}     % for proper word breaking at line ends
@@ -18,7 +17,7 @@
 %\usepackage{allrunes}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% SET TITLE PAGE VALUES HERE %%
+%%          TITLE             %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %             ||               %
 %             ||               %
@@ -39,7 +38,7 @@
 %             ||               %
 %             ||               %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% SET TITLE PAGE VALUES HERE %%
+%%          TITLE              %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -51,7 +50,7 @@
 %% TODO PACKAGE
 \newcommand{\towrite}[1]{\todo[inline,color=yellow!10]{TO WRITE: #1}}
 
-%% THEOREM STYLES
+%% THEOREM THEMAER
 \newtheorem{theorem}{Theorem}[section]
 \newtheorem{corollary}{Corollary}[theorem]
 \newtheorem{lemma}[theorem]{Lemma}
@@ -64,7 +63,7 @@
 \newtheorem*{remark}{Remark}
 
 
-%% MATH OPERATORS
+%% Dejlige functioner
 \DeclareMathOperator{\supersine}{supersin}
 \DeclareMathOperator{\supercosine}{supercos}
 
@@ -354,76 +353,13 @@ Vi vil nu udvide vore experiment til S\&P500, som ses på firgur \ref{fig:VIXSP5
 Her ses det at S\&P500 har langt mindre volatilitet, og vi kan tydeligt se tæt på konstant drift, man kunne derfor tænke sig at sige at denne er tættere på at kunne simuleres af en geometrisk brownsk bevægelse, da eftersom at driften er næsten konstant.
 
 
-%Vi er ligeledes intresseret i den tid-t $\Delta$, som findes nedenfor.
-%$$\Delta(S_t,t)=\frac{\partial \Pi}{\partial S_t}=e^{-r(T-t)}\phi_Z\left(\ln\left(\frac{K}{S_t}\right)\right)\frac{1}{K/M_t}\left(-\frac{K}{M_t^2}\right)=-e^{-r(T-t)}\phi_Z\left(\ln\left(\frac{K}{M_t}\right)\right)\frac{1}{M_t}$$
-
-%\begin{definition}\label{def:domain}
-%A set $U \subseteq \mathbb{C}$ is a \emph{domain} if:
-%\begin{itemize}
-%    \item $U$ is open in $\mathbb{C}$, and
-%    \item $U$ is connected.
-%\end{itemize}
-
-%\subsection{Yumyumyumyum}
-%\towrite{an introduction and some examples}
-
-%\begin{theorem}[]
-%Suppose $n \in \mathbb{Z}$, then the following are equivalent:
-%\begin{enumerate}[label=\roman*.]
-%    \item $n > 5$.
-%    \item $5 > 5$.\todo{This doesn't seem right...}
-%    \item For each $n \in n$, we have:
-%    \begin{align}\label{eq:truth}
-%        n > n+1 > n+1^2 > \dots > n+7.
-%    \end{align}
-%    where $7$ is an arbitrary element of
-%    \begin{align*}
-%        \oint_{a}^{b} \supersine \alpha + i \supercosine \beta  db(a).
-%    \end{align*}
-%\end{enumerate}
-%\end{theorem}
-
-%\begin{remark}
-%Interesting!
-%\end{remark}
-%\begin{proof}
-%See \cite{Rynne2008LinearAnalysis}.
-%\end{proof}
-
-%\begin{figure}[h]
-%    \centering
-%    \includegraphics[width=.3\textwidth]{img/in_dei_nomine_feliciter.eps}
-%    \caption{Motivational illustration. Similar to \cite{Oort1958,Reed1960}.}
-%    \label{fig:logo}
-%\end{figure}
-
-%\begin{corollary}
-%Suppose $U \subseteq \mathbb{C}$ is a domain (see Definition \ref{def:domain}), and $f: \overline{U} \rightarrow \mathbb{C}$ is continuous on $\overline{U}$ and holomorphic on $U$. If $z \mapsto |f(z)|$ is constant on $\partial U$, then $f$ has a zero in $U$.
-%\end{corollary}
-%\begin{proof}
-%If not, consider $\frac{1}{f}$.
-%\end{proof}
-%The proof of this theorem is illustrated in Figure \ref{fig:logo}.
-
-%\begin{figure}
-%    \centering
-%    \includegraphics[width=.7\textwidth]{img/cat.jpg}
-%    \caption{A cute dog.}
-%    \label{fig:my_label}
-%\end{figure}
 
 \newpage
 
-% You can choose a citation style, 'plain' is the default
-% See:
-% https://www.overleaf.com/learn/latex/Bibtex_bibliography_styles
+
 
 \bibliographystyle{plain}
 \bibliography{references.bib}
 
 \end{document}
 
-% Have fun!
-% -fons
-
-% http://www2.washjeff.edu/users/rhigginbottom/latex/resources/symbols.pdf
