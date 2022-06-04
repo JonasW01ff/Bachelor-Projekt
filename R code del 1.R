@@ -425,9 +425,9 @@ ggplot(melt(data, id="day")) + geom_path(aes(x = day, y=value, group=variable, c
                                       axis.title=element_text(size=20))
 
 
-######
+#######
 ## Empirical hedging
-######
+#######
 print("S&P 500-data")
 getSymbols("^GSPC",src="yahoo")
 X_SPX<-as.vector(GSPC[,6])
