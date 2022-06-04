@@ -9,6 +9,9 @@ library("ggplot2")
 library("reshape2")
 library("matlib")
 
+##########
+##  Empirical analysis of a linear SDE
+##########
 logLikeFunc <- function(X,kappa,theta,sigma2){
   "
   Tager daglig data og retunere loglikelihood funktionsv?rdien,
@@ -82,34 +85,9 @@ KvadratiskTeststoerelse <- function(X){
         }
         S <- c(NaN,NaN,NaN)
         S <- numDeriv::grad(logLikeFunc_data,c(kappa,theta,sigma2))
-        #for (i in 1:3){
-        #  vars <- c(kappa,theta,sigma2)
-        #  func <- function(vari) {
-        #    arg <- c(kappa,theta,sigma2)
-        #    arg[i] <- vari
-        #    return(logLikeFunc(X,arg[1],arg[2],arg[3]))}
-        #  S[i] <- mean(numDeriv::grad(func,vars[i], method="Richardson")) 
-        #}
         I <- matrix(NaN,nrow=3,ncol=3)
         I <- -numDeriv::hessian(logLikeFunc_data,c(kappa,theta,sigma2))
-        #for (i in 1:3){
-        #  for (j in 1:3){
-        #    vars <- c(kappa,theta,sigma2)
-        #    func_base <- function(vari_base){
-        #      func <- function(vari) {
-        #        arg <- c(kappa,theta,sigma2)
-        #        arg[i] <- vari
-        #        arg[j] <- vari_base
-        #        return(logLikeFunc(X,arg[1],arg[2],arg[3]))}
-        #      return(numDeriv::grad(func,vars[i], method="Richardson"))
-        #    }
-            #I[i,j] <- -mean(numDeriv::grad(func_base,vars[j], method="Richardson"))
-        #    logLikeFunc_data <- function(kappa,theta,sigma2){
-        #      return(logLikeFunc(X,kappa,theta,sigma2))
-        #    }
-        #    I <- -mean(numDeriv::hessian(logLikeFunc_data,kappa=kappa,theta=theta,sigma2=sigma2))
-        #  }
-        #}
+
 
         Ii <- MASS::ginv(I)
         teststoerelse <- length(X)^(-2)*t(S)%*%Ii%*%S
@@ -455,15 +433,6 @@ SDEcreator <- function(kappa,theta,sigma2,n,Xt){
   return(X)
 }
 
-# <- KvadratiskTeststoerelse(X)
-#scatterplot3d(punktsky)
-#print("kappa, confidens interval: ")
-#print(c(min(punktsky[,1]),max(punktsky[,1])))
-#print("theta, confidens interval: ")
-#print(c(min(punktsky[,2]),max(punktsky[,2])))
-#print("sigma2, confidens interval: ")
-#print(c(min(punktsky[,3]),max(punktsky[,3])))
-
 # VIX data
 print("VIK-data")
 getSymbols("^VIX",src="yahoo")
@@ -534,6 +503,14 @@ ggplot(melt(data, id="day")) + geom_path(aes(x = day, y=value, group=variable, c
                                       axis.text=element_text(size=20),
                                       axis.title=element_text(size=20))
 
+
+
+
+######
+##  Pricing and hedging in the Black-Scholes model
+######
+
+# Dette er gjort i rolfs fil.
 
 ######
 ## Empirical hedging
