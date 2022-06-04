@@ -50,6 +50,7 @@ logLikeFunc <- function(X,kappa,theta,sigma2){
 
 KvadratiskTeststoerelse <- function(X){
   "
+  [Bruges ikke længere!]
   Givet en loglikelihood funktion og observationerne, findes
   den kvadratiske score teststoerelse konfidens regioner i form
   af en punkt sky
@@ -59,13 +60,9 @@ KvadratiskTeststoerelse <- function(X){
   ::Type list af numerics eller ?n numeric
     En liste med observationerne
   
-  param logLikeFunc
-  ::Type R funktion
-    En R funktion der svare til din loglikelihood funktion
-  
   return
-  ::Type 6 vectors
-    kappa'er <= taerskel, kappa'er over taerskel, ligeså med theta'er og derefter sigma^2'er
+  ::Type 3 vectors
+    Punktsky med variable der gav en kvadratisk testscore mindre end eller lig med tærsklen, i.e. chi^2 kvatilen.
   "
   Kappas = c()
   kappas = c()
@@ -137,6 +134,44 @@ KvadratiskTeststoerelse <- function(X){
 }
 
 asympMLE95 <- function(data,hat_kappa,hat_theta,hat_sigma2,dt=1,HESS=FALSE){
+  "
+  Bruger de manuelt udledte første afledte, og derefter ved numerisk approximation
+  findes de anden afledte som gradient af de første afledte.
+  Dette bliver til fisher informationen of at assymptotisk 95% konf. interval
+  kan findes
+  
+  
+  ------
+  :param data:
+    Type vector of floats
+      vector med data der følger GBM
+      
+  :param hat_kappa:
+    Type float
+      MLE for kappa
+  
+  :param hat_theta:
+    Type float
+      MLE for theta
+  
+  :param hat_sigma:
+    Type float
+      MLE for sigma^2
+      
+  :param dt:
+    Type float
+      den ækvidistante distance mellem obervationener, i.e. data
+  
+  :param HESS:
+    Type bool
+      Hvis TRUE, så bruges numderiv hessian functionen i stedet for grad på de førsteafledte for at finde fisher informationen.
+      Hvis FALSE, så bruges numderiv grad på de først afledte til at finde fischer informationen
+  
+  :return:
+    Type Matrix
+      3x4 matrix med de assymptotiske konfidens intervaller for de 3 MLE'er
+  
+  "
   kappa_ <- hat_kappa
   theta_ <- hat_theta
   sigma2_ <- hat_sigma2
@@ -194,6 +229,35 @@ asympMLE95 <- function(data,hat_kappa,hat_theta,hat_sigma2,dt=1,HESS=FALSE){
 }
 
 MLEcheck <- function(kappa_,theta_, sigma2_,n,n_simul){
+  "
+  Finder MLE konfidensinterval ved simulation, og ved asymptotiske resultater
+  og tjekker dem op mod hindanden ud fra givne MLE'er
+  
+  
+  ------
+  :param data:
+    Type vector of floats
+      vector med data der følger GBM
+      
+  :param hat_kappa:
+    Type float
+      MLE for kappa
+  
+  :param hat_theta:
+    Type float
+      MLE for theta
+  
+  :param hat_sigma:
+    Type float
+      MLE for sigma^2
+      
+  
+  :return:
+    Type print
+      3x4 matrix med de assymptotiske konfidens intervaller for de 3 MLE'er
+      4x3 matrix med de simulleret konfidensintervaller for de 3 MLE'er
+  
+  "
   b_ = theta_*(1-exp(-kappa_))
   a_ = exp(-kappa_)
   v_ <- sigma2_*(1-exp(-2*kappa_))/(2*kappa_)
@@ -260,6 +324,22 @@ MLEcheck(0.05,0.2,0.4,10000,100)
 #MLEcheck(0.05,0.2,0.4,100000,100)
 
 MLE95 <- function(X){
+  "
+  Finder MLE og konfidensinterval ved simulation,
+  og printer dem
+  
+  
+  ------
+  :param data:
+    Type vector of floats
+      vector med data der følger GBM
+      
+  :return:
+    Type print
+      print 3 gange med MLE'er
+      4x3 matrix med de simulleret konfidensintervaller for de 3 MLE'er
+  
+  "
   data <- X
   X_1 <- head(X,-1)
   X <- tail(X,-1)
@@ -335,6 +415,36 @@ MLE95 <- function(X){
 }
 
 SDEcreator <- function(kappa,theta,sigma2,n,Xt){
+  "
+  Simulere en sti ud fra givet kappa theta og sigma^2
+  
+  
+  ------
+  :param hat_kappa:
+    Type float
+      MLE for kappa
+  
+  :param hat_theta:
+    Type float
+      MLE for theta
+  
+  :param hat_sigma:
+    Type float
+      MLE for sigma^2
+  
+  :param n:
+    Type float
+      antal observationer der skal simuleres
+  
+  :param Xt:
+    Type float
+      Start værdi for den GBM.
+      
+  :return:
+    Type vector
+      En vector med den GBM sti.
+  
+  "
   X <- c(Xt)
   for (i in 1:(n-1)){
     dWt <- rnorm(1,0,1)
