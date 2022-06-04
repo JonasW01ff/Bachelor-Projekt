@@ -438,5 +438,5 @@ par(mfrow=c(1,1))
 data <- melt(data ,  id.vars = 'day', variable.name = 'indeks')
 ggplot(data, aes(day,value)) + geom_line(aes(colour = indeks))
 
-
+print("trial")
 
