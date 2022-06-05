@@ -1,7 +1,8 @@
 #install.packages("numDeriv", dependencies=TRUE)
 #install.packages("matlib", dependencies=TRUE)
 
-#library("numDeriv")
+library("numDeriv")
+library("runner")
 library("MASS")
 #library("scatterplot3d")
 library("quantmod")
@@ -40,15 +41,15 @@ logLikeFunc <- function(X,kappa,theta,sigma2){
   
   "
 
-  dt <- 1 # Bare en FYI
+  #dt <- 1 # Bare en FYI
   a <- exp(-kappa*dt)
   b <- theta*(1-exp(-kappa*dt))
   v <- sigma2*(1-exp(-2*kappa*dt))
-  logLike <- 0
-  for (i in 2:length(X)){
-    logLike <- logLike + -1/2*log(v*2*pi)-(X[i]-X[i-1]*a-b)^2/(2*v)
-  }
-  return(logLike)
+  #logLike <- sum(-1/2*log(v*2*pi)-(X[2:length(X)]-X[1:length(X)-1]*a-b)^2/(2*v))
+  #for (i in 2:length(X)){
+  #  logLike <- logLike + -1/2*log(v*2*pi)-(X[i]-X[i-1]*a-b)^2/(2*v)
+  #}
+  return(sum(-1/2*log(v*2*pi)-(X[2:length(X)]-X[1:length(X)-1]*a-b)^2/(2*v)))
 }
 
 KvadratiskTeststoerelse <- function(X){
@@ -301,7 +302,7 @@ MLEcheck(0.05,0.2,0.4,1000,100)
 MLEcheck(0.05,0.2,0.4,10000,100)
 #MLEcheck(0.05,0.2,0.4,100000,100)
 
-MLE95 <- function(X){
+MLE95 <- function(X, n_simul=100){
   "
   Finder MLE og konfidensinterval ved simulation,
   og printer dem
@@ -344,24 +345,26 @@ MLE95 <- function(X){
   a_ = exp(-kappa_)
   v_ <- sigma2_*(1-exp(-2*kappa_))/(2*kappa_)
   n <- length(X)
-  hat_kappas <- c()
-  hat_thetas <- c()
-  hat_sigmas2<- c()
-  for (simulation in 1:100){
+  hat_kappas <- rep(NaN,n_simul)
+  hat_thetas <- rep(NaN,n_simul)
+  hat_sigmas2<- rep(NaN,n_simul)
+  u <- 1
+  varians <- sigma2_*(1-exp(-2*kappa_*u))/(2*kappa_)
+  sd      <- varians^0.5
+  konstant_led <- theta_*(1-exp(-kappa_*u))
+  konstant_fakor <- exp(-kappa_*u)
+  for (simulation in 1:n_simul){
     #print(c("Simulation:",simulation))
     Xt <- 0
-    Xtu <- Xt # last X
-    X_1 <- c(Xt)
-    X <- c()
-    for (u in 1:n){
-      u <- 1
-      middel <- exp(-kappa_*u)*Xtu+theta_*(1-exp(-kappa_*u))
-      varians <- sigma2_*(1-exp(-2*kappa_*u))/(2*kappa_)
-      Xtu <- rnorm(1,middel,varians^0.5)
-      X <- c(X,Xtu)
-      X_1 <- c(X_1,Xtu)
+    #Xtu <- Xt # last X
+    X_1 <- rep(NaN,n+1)
+    X_1[1] <- Xt
+    X_1_pre <- rnorm(n,konstant_led,sd)
+    for (u_dummy in 1:n){
+      #middel <- konstant_fakor*Xtu+konstant_led#theta_*(1-exp(-kappa_*u))
+      X_1[u_dummy+1] <- X_1_pre[u_dummy]+konstant_fakor*X_1[u_dummy]
     }
-    
+    X <- tail(X_1,-1)
     X_1 <- head(X_1,-1)
     x0 <- sum(X)
     x1 <- sum(X_1)
@@ -376,9 +379,9 @@ MLE95 <- function(X){
     hat_theta <- hat_b/(1-exp(-hat_kappa))
     hat_sigma2 <- 2*hat_kappa*hat_v/(1-exp(-2*hat_kappa))
     
-    hat_kappas <- c(hat_kappas, hat_kappa)
-    hat_thetas <- c(hat_thetas, hat_theta)
-    hat_sigmas2<- c(hat_sigmas2,hat_sigma2)
+    hat_kappas[simulation] <- hat_kappa
+    hat_thetas[simulation] <- hat_theta
+    hat_sigmas2[simulation]<- hat_sigma2
   }
   hat_kappas <- na.omit(hat_kappas)
   hat_thetas <- na.omit(hat_thetas)
@@ -423,12 +426,14 @@ SDEcreator <- function(kappa,theta,sigma2,n,Xt){
       En vector med den GBM sti.
   
   "
-  X <- c(Xt)
-  for (i in 1:(n-1)){
-    dWt <- rnorm(1,0,1)
-    Xdt <- kappa*(theta-Xt)+sigma2*dWt
-    Xt <- Xt+Xdt
-    X <- c(X,Xt)
+  X <- rep(NaN,n)
+  X[1] <- Xt
+  rnorms <- rnorm(n-1,0,1)
+  for (i in 2:n){
+    #dWt <- rnorm(1,0,1)
+    #Xdt <- kappa*(theta-Xt)+sigma2*dWt
+    #Xt <- Xt+Xdt
+    X[i] <- X[i-1]+kappa*(theta-X[i-1])+sigma2*rnorms[i-1]
   }
   return(X)
 }
@@ -524,4 +529,44 @@ data["day"] = index(VIX)
 par(mfrow=c(1,1))
 data <- melt(data ,  id.vars = 'day', variable.name = 'indeks')
 ggplot(data, aes(day,value)) + geom_line(aes(colour = indeks))
+
+par(mfrow=c(1,1))
+qqnorm(X_SPX, pch = 1, frame = FALSE, main="Normal QQ-plot af S&P500")
+qqline(X_SPX, col = "steelblue", lwd = 2)
+#qqnorm(log(X_SPX), pch = 1, frame = FALSE, main="Normal QQ-plot af ln(S&P500)")
+#qqline(log(X_SPX), col = "steelblue", lwd = 2)
+
+MLE <- function(X){
+  data <- X
+  X_1 <- head(X,-1)
+  X <- tail(X,-1)
+  x0 <- sum(X)
+  x1 <- sum(X_1)
+  x01 <- sum(X*X_1)
+  x11 <- sum(X_1*X_1)
+  
+  hat_b <- sum(X-X_1*(x01/x11) )/sum(1-X_1*(x1/x11) )
+  hat_a <- (x01-x1*hat_b)/x11
+  hat_v <- mean((X-X_1*hat_a-hat_b)^2)
+  
+  hat_kappa <- -log(hat_a)
+  hat_theta <- hat_b/(1-exp(-hat_kappa))
+  hat_sigma2 <- 2*hat_kappa*hat_v/(1-exp(-2*hat_kappa))
+  return(c(hat_kappa,hat_theta,hat_sigma2))
+}
+
+MLE95(X_SPX)
+
+MLE_sigma_rolling_month <- runner(
+  X_SPX,
+  k=21,
+  f= function(X){MLE(X)[3]}
+)
+
+plot(MLE_sigma_rolling_month)
+mean(MLE_sigma_rolling_month,na.rm=TRUE)
+
+
+
+
 
