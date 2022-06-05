@@ -454,6 +454,8 @@ qqline(log(X), col = "steelblue", lwd = 2)
 MLE95(X)
 MLE95(log(X))
 
+
+
 X_1 <- head(X,-1)
 X <- tail(X,-1)
 x0 <- sum(X)
@@ -576,16 +578,49 @@ MLE <- function(X){
 
 MLE95(X_SPX)
 
-MLE_sigma_rolling_month <- runner(
-  X_SPX,
-  k=21,
-  f= function(X){MLE(X)[3]}
-)
+window <- 21
+lambda <- 0.94
+X_VIX <- as.vector(VIX[,6]/100)#head(VIX[,6],100)
 
-plot(MLE_sigma_rolling_month)
-mean(MLE_sigma_rolling_month,na.rm=TRUE)
+for (i in 1:2){
+  if (i==1){
+    var <- X_SPX
+    valname <- "SP500"
+    }
+  if (i==2){
+    var <- X_VIX
+    valname <- "VIX"
+    }
+  
+  MLE_sigma_rolling_month <- runner(
+    var,
+    k=window,
+    f= function(X){sqrt(MLE(X)[3])}
+  )
 
-
-
-
-
+  returns <-  c(NaN,tail(var,-1)/head(var,-1))
+  EWMA <- runner(
+    MLE_sigma_rolling_month,
+    k=300,
+    lag=-300+window,
+    f=function(X){
+      out <- 0
+      for (i in 1:(window-1+1)){
+        out_ <- lambda*out+(1-lambda)*X[i]^2
+        if (!is.na(out_)){out <- out_}
+      }
+      return(sqrt(out))
+    }
+  )
+  
+  #plot(MLE_sigma_rolling_month)
+  mean(MLE_sigma_rolling_month,na.rm=TRUE)
+  
+  #plot(EWMA)
+  
+  data <- data.frame(cbind(MLE_sigma_rolling_month,EWMA))
+  data["dag"] = index(VIX)
+  data <- melt(data ,  id.vars = 'dag', variable.name = 'variabel', value.name = valname)
+  if(i==1){print(ggplot(data, aes(dag,SP500)) + geom_line(aes(colour = variabel)))}
+  if(i==2){print(ggplot(data, aes(dag,VIX)) + geom_line(aes(colour = variabel)))}  
+}
