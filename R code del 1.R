@@ -191,6 +191,7 @@ asympMLE95 <- function(data,hat_kappa,hat_theta,hat_sigma2,dt=1,HESS=FALSE){
     I_row2 <- -numDeriv::grad(ell_theta_data,c(kappa_,theta_,sigma2_))
     I_row3 <- -numDeriv::grad(ell_sigma_data,c(kappa_,theta_,sigma2_))
     I <- matrix(c(I_row1,I_row2,I_row3),nrow=3,byrow=TRUE)
+    I <- (I+t(I))/2 # giver noget symmetri bedre approx. for anden afledte
     Iinv <- inv(I)
   }
   else{
@@ -240,25 +241,27 @@ MLEcheck <- function(kappa_,theta_, sigma2_,n,n_simul){
   b_ = theta_*(1-exp(-kappa_))
   a_ = exp(-kappa_)
   v_ <- sigma2_*(1-exp(-2*kappa_))/(2*kappa_)
-  hat_kappas <- c()
-  hat_thetas <- c()
-  hat_sigmas2<- c()
+  hat_kappas <- rep(NaN,n_simul)
+  hat_thetas <- rep(NaN,n_simul)
+  hat_sigmas2<- rep(NaN,n_simul)
+  u <- 1
+  varians <- sigma2_*(1-exp(-2*kappa_*u))/(2*kappa_)
+  sd      <- varians^0.5
+  konstant_led <- theta_*(1-exp(-kappa_*u))
+  konstant_fakor <- exp(-kappa_*u)
   for (simulation in 1:n_simul){
     #print(c("Simulation:",simulation))
     Xt <- 0
-    Xtu <- Xt # last X
-    X_1 <- c(Xt)
-    X <- c()
-    for (u in 1:n){
-      u <- 1
-      middel <- exp(-kappa_*u)*Xtu+theta_*(1-exp(-kappa_*u))
-      varians <- sigma2_*(1-exp(-2*kappa_*u))/(2*kappa_)
-      Xtu <- rnorm(1,middel,varians^0.5)
-      X <- c(X,Xtu)
-      X_1 <- c(X_1,Xtu)
+    #Xtu <- Xt # last X
+    X_1 <- rep(NaN,n+1)
+    X_1[1] <- Xt
+    X_1_pre <- rnorm(n,konstant_led,sd)
+    for (u_dummy in 1:n){
+      #middel <- konstant_fakor*Xtu+konstant_led#theta_*(1-exp(-kappa_*u))
+      X_1[u_dummy+1] <- X_1_pre[u_dummy]+konstant_fakor*X_1[u_dummy]
     }
     data <- X_1
-    
+    X <- tail(X_1,-1)
     X_1 <- head(X_1,-1)
     x0 <- sum(X)
     x1 <- sum(X_1)
@@ -273,9 +276,9 @@ MLEcheck <- function(kappa_,theta_, sigma2_,n,n_simul){
     hat_theta <- hat_b/(1-exp(-hat_kappa))
     hat_sigma2 <- 2*hat_kappa*hat_v/(1-exp(-2*hat_kappa))
     
-    hat_kappas <- c(hat_kappas, hat_kappa)
-    hat_thetas <- c(hat_thetas, hat_theta)
-    hat_sigmas2<- c(hat_sigmas2,hat_sigma2)
+    hat_kappas[simulation] <- hat_kappa
+    hat_thetas[simulation] <- hat_theta
+    hat_sigmas2[simulation]<- hat_sigma2
   }
   print(asympMLE95(data, hat_kappa, hat_theta, hat_sigma2))
   hat_kappas <- na.omit(hat_kappas)
@@ -300,7 +303,8 @@ MLEcheck(0.05,0.2,0.4,5,100)
 MLEcheck(0.05,0.2,0.4,100,100)
 MLEcheck(0.05,0.2,0.4,1000,100)
 MLEcheck(0.05,0.2,0.4,10000,100)
-#MLEcheck(0.05,0.2,0.4,100000,100)
+MLEcheck(0.05,0.2,0.4,100000,100)
+MLEcheck(0.05,0.2,0.4,1000000,100)
 
 MLE95 <- function(X, n_simul=100){
   "
@@ -537,6 +541,21 @@ qqline(X_SPX, col = "steelblue", lwd = 2)
 #qqline(log(X_SPX), col = "steelblue", lwd = 2)
 
 MLE <- function(X){
+  "
+  Tager data, og giver MLE for OU-process tilbage
+  
+  
+  -----
+  :param X:
+    Type vector
+      Vector med floats der er din data
+  
+  :return:
+    Type vector
+      Returnere vector med dine tre MLE'er i rækkefølgen
+      kappa,theta og sigma^2
+  "
+  
   data <- X
   X_1 <- head(X,-1)
   X <- tail(X,-1)
