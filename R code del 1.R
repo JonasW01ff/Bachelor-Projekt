@@ -10,9 +10,10 @@ library("ggplot2")
 library("reshape2")
 library("matlib")
 
-##########
-##  Empirical analysis of a linear SDE
-##########
+######
+## Empirical analysis of a linear SDE
+######
+
 logLikeFunc <- function(X,kappa,theta,sigma2){
   "
   Tager daglig data og retunere loglikelihood funktionsv?rdien,
@@ -442,7 +443,7 @@ SDEcreator <- function(kappa,theta,sigma2,n,Xt){
   return(X)
 }
 
-# VIX data
+##VIX data
 print("VIK-data")
 getSymbols("^VIX",src="yahoo")
 X<-as.vector(VIX[,6])#head(VIX[,6],100)
@@ -575,7 +576,7 @@ MLE <- function(X){
   hat_sigma2 <- 2*hat_kappa*hat_v/(1-exp(-2*hat_kappa))
   return(c(hat_kappa,hat_theta,hat_sigma2))
 }
-MLE_GBM <- function(X){
+MLE_GBM_ <- function(X){
   "
   Tager data, og giver MLE for OU-process tilbage
   
@@ -592,6 +593,43 @@ MLE_GBM <- function(X){
   "
   
   data <- X
+  X <- as.numeric(X)
+  X <- X
+  X_1 <- head(X,-1)
+  X <- tail(X,-1)
+  x0 <- sum(X)
+  x1 <- sum(X_1)
+  x01 <- sum(X*X_1)
+  x11 <- sum(X_1*X_1)
+  
+  hat_b <- 0#sum(X-X_1*(x01/x11) )/sum(1-X_1*(x1/x11) )
+  hat_a <- (x01-x1*hat_b)/x11
+  hat_v <- mean((X-X_1*hat_a-hat_b)^2)
+  
+  hat_kappa <- -log(hat_a)
+  hat_theta <- hat_b/(1-exp(-hat_kappa))
+  hat_sigma2 <- 2*hat_kappa*hat_v/(1-exp(-2*hat_kappa))
+  return(c(-hat_kappa,hat_sigma2))
+}
+MLE_GBM_NORM <- function(X){
+  "
+  Tager data, og giver MLE for OU-process tilbage
+  
+  
+  -----
+  :param X:
+    Type vector
+      Vector med floats der er din data
+  
+  :return:
+    Type vector
+      Returnere vector med dine tre MLE'er i rækkefølgen
+      beta, sigma^2
+  "
+  
+  data <- X
+  X <- as.numeric(X)
+  X <- X/X[1]*1
   X_1 <- head(X,-1)
   X <- tail(X,-1)
   x0 <- sum(X)
@@ -609,6 +647,7 @@ MLE_GBM <- function(X){
   return(c(-hat_kappa,hat_sigma2))
 }
 
+MLE_GBM <- MLE_GBM_
 MLE_GBM(X_SPX)
 
 window <- 21
@@ -752,10 +791,18 @@ hedge_func <- function(data){ #Tyv stjålet fra rolfs kode
   #S0<-100
   S0 <- data[,1]-data[,1]+1000#as.numeric(St[1])
   r <- 0#0.02
-  mu <- 0#MLE_GBM(data)[1]#0.02
+  mu <- rep(NaN, length(data[1,]))
+  for (i in 1:length(data[1,])){
+    mu[i] <- MLE_GBM(data[i,])[1]
+  }
+  #mu <- MLE_GBM(data)[1]#0.02
   
   sigma <- 20.01
-  sigma_hedge <- 20.01/sqrt(21)#MLE_GBM(X)[2]
+  sigma_hedge <- 0.07#20.01#/sqrt(21)#MLE_GBM(X)[2]
+  sigma_hedge <- rep(NaN, length(data[1,]))
+  for (i in 1:length(data[1,])){
+    sigma_hedge[i] <- sqrt(MLE_GBM(data[i,])[2])
+  }
   
   capT<-1
   strike<-1000
@@ -770,7 +817,6 @@ hedge_func <- function(data){ #Tyv stjålet fra rolfs kode
   #initialoutlay<-BlackScholesFormula(S0,capT,strike, r,0,sigma,1,1)
   
   Vpf<- initialoutlay #rep(initialoutlay,length=Nrep)
-  print(Vpf)
   
   a<-BlackScholesFormula(St,capT,strike, r,0,sigma_hedge,1,2)
   b<-Vpf-a*St
@@ -803,11 +849,11 @@ hedge_func <- function(data){ #Tyv stjålet fra rolfs kode
   ToFile<-FALSE
   
   if (ToFile) png(file="Scatter.png",res=300,width = 3*480, height = 3*480)
-  plot(St,Vpf,col="blue",xlab="S(T)",ylab="Value of hedge portfolio",main="Discrete hedging of a call-option",xlim=c(50,1200),ylim=c(-5,105))
+  plot(St,Vpf,col="blue",xlab="S(T)",ylab="Value of hedge portfolio",main="Discrete hedging of a call-option",xlim=c(50,1500),ylim=c(-5,1505))
   text(50,100,paste("# hegde points =",Nhedge),adj=0)
   #text(50,95,paste("r-mu =",r-mu),adj=0)
   #text(50,90,paste("sigma-sigma_hedge =",sigma-sigma_hedge),adj=0)
-  points(50:1200,pmax(50:1200 - strike,0),type='l',lwd=3)
+  points(50:1500,pmax(50:1500 - strike,0),type='l',lwd=3)
   
   if (ToFile) dev.off()
   
@@ -815,8 +861,11 @@ hedge_func <- function(data){ #Tyv stjålet fra rolfs kode
 
 bmonth <- data.frame(split(tail(X_SPX,length(X_SPX)%%21*(-1)),1:21)) #bmonth[1,] would give you the first buisness month
 
+MLE_GBM <- MLE_GBM_
+
 hedge_func(bmonth)
 
+MLE_GBM <- MLE_GBM_NORM # Dårlig kode praksis, me ret belejligt. 
 
-
+hedge_func(bmonth)
 

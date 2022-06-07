@@ -212,3 +212,5 @@ for (opttype_ in c(1,3)){
   Nhedge <- 10
   main_code()
 }
+
+
