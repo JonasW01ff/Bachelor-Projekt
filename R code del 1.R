@@ -305,7 +305,7 @@ MLEcheck(0.05,0.2,0.4,100,100)
 MLEcheck(0.05,0.2,0.4,1000,100)
 MLEcheck(0.05,0.2,0.4,10000,100)
 MLEcheck(0.05,0.2,0.4,100000,100)
-MLEcheck(0.05,0.2,0.4,1000000,100)
+#MLEcheck(0.05,0.2,0.4,1000000,100)
 
 MLE95 <- function(X, n_simul=100){
   "
@@ -576,7 +576,7 @@ MLE <- function(X){
   hat_sigma2 <- 2*hat_kappa*hat_v/(1-exp(-2*hat_kappa))
   return(c(hat_kappa,hat_theta,hat_sigma2))
 }
-MLE_GBM_ <- function(X){
+MLE_GBM <- function(X){
   "
   Tager data, og giver MLE for OU-process tilbage
   
@@ -591,63 +591,16 @@ MLE_GBM_ <- function(X){
       Returnere vector med dine tre MLE'er i rækkefølgen
       beta, sigma^2
   "
-  
-  data <- X
-  X <- as.numeric(X)
-  X <- X
-  X_1 <- head(X,-1)
-  X <- tail(X,-1)
-  x0 <- sum(X)
-  x1 <- sum(X_1)
-  x01 <- sum(X*X_1)
-  x11 <- sum(X_1*X_1)
-  
-  hat_b <- 0#sum(X-X_1*(x01/x11) )/sum(1-X_1*(x1/x11) )
-  hat_a <- (x01-x1*hat_b)/x11
-  hat_v <- mean((X-X_1*hat_a-hat_b)^2)
-  
-  hat_kappa <- -log(hat_a)
-  hat_theta <- hat_b/(1-exp(-hat_kappa))
-  hat_sigma2 <- 2*hat_kappa*hat_v/(1-exp(-2*hat_kappa))
-  return(c(-hat_kappa,hat_sigma2))
-}
-MLE_GBM_NORM <- function(X){
-  "
-  Tager data, og giver MLE for OU-process tilbage
-  
-  
-  -----
-  :param X:
-    Type vector
-      Vector med floats der er din data
-  
-  :return:
-    Type vector
-      Returnere vector med dine tre MLE'er i rækkefølgen
-      beta, sigma^2
-  "
-  
-  data <- X
-  X <- as.numeric(X)
-  X <- X/X[1]*1
-  X_1 <- head(X,-1)
-  X <- tail(X,-1)
-  x0 <- sum(X)
-  x1 <- sum(X_1)
-  x01 <- sum(X*X_1)
-  x11 <- sum(X_1*X_1)
-  
-  hat_b <- 0#sum(X-X_1*(x01/x11) )/sum(1-X_1*(x1/x11) )
-  hat_a <- (x01-x1*hat_b)/x11
-  hat_v <- mean((X-X_1*hat_a-hat_b)^2)
-  
-  hat_kappa <- -log(hat_a)
-  hat_theta <- hat_b/(1-exp(-hat_kappa))
-  hat_sigma2 <- 2*hat_kappa*hat_v/(1-exp(-2*hat_kappa))
-  return(c(-hat_kappa,hat_sigma2))
+  X <-  as.numeric(X)
+  lnX <- log(X)
+  model <- lm(lnx ~ time+0,data= data.frame(lnx = lnX-lnX[1],time = 0:(length(lnX)-1)))
+  if (dim(summary(model)$coefficients)!=c(1,4)){mu <- NaN}
+  else{mu <- summary(model)$coefficients[1,1]}
+  residualer <- X-X[1]*exp(mu*(0:(length(X)-1)))
+  sigma <- sd(residualer/X)
+  return(c(mu,sigma^2))
 }
 
-MLE_GBM <- MLE_GBM_
 MLE_GBM(X_SPX)
 
 window <- 21
@@ -861,11 +814,10 @@ hedge_func <- function(data){ #Tyv stjålet fra rolfs kode
 
 bmonth <- data.frame(split(tail(X_SPX,length(X_SPX)%%21*(-1)),1:21)) #bmonth[1,] would give you the first buisness month
 
-MLE_GBM <- MLE_GBM_
-
 hedge_func(bmonth)
 
-MLE_GBM <- MLE_GBM_NORM # Dårlig kode praksis, me ret belejligt. 
+#MLE_GBM <- MLE_GBM_NORM # Dårlig kode praksis, me ret belejligt. 
+#bmonth <- data.frame(split(tail(X_SPX,length(X_SPX)%%21*(-1)),1:21))
 
-hedge_func(bmonth)
+#hedge_func(bmonth)
 
