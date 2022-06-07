@@ -65,7 +65,7 @@ BlackScholesFormula  <- function (spot,timetomat,strike,r, q=0, sigma, opttype=1
   
   if (opttype==3 && greektype==1) result<- 1*exp(-r*(timetomat))*pnorm(log(strike/spot),(r-1/2*sigma^2)*timetomat,sigma*sqrt(timetomat))
   if (opttype==3 && greektype==2) result<- -1*exp(-r*(timetomat))*dnorm(log(strike/spot),(r-1/2*sigma^2)*timetomat,sigma*sqrt(timetomat))/spot
-  
+  return(result)
   BlackScholesFormula<-result
   
 }
@@ -79,7 +79,6 @@ uniroot(difference, c(10^-6,10),obsprice=obsprice,spot=spot,timetomat=timetomat,
 
 # INITIALIZE
 # ==========
-
 S0<-100
 r<-0.02
 mu<-0.02
@@ -90,52 +89,126 @@ sigma_hedge<-0.2
 capT<-1
 strike<-100
 
-Nhedge<-10#252
+Nhedge<-252
 Nrep<-1000
 
+reset_var <- function(){
+  S0<<-100
+  r<<-0.02
+  mu<<-0.02
+  
+  sigma<<-0.2
+  sigma_hedge<<-0.2
+  
+  capT<<-1
+  strike<<-100
+  
+  Nhedge<<-252
+  Nrep<<-1000
+}
+reset_var()
 # HEDGE
 # =====
 
-St<-rep(S0, length=Nrep)
-dt<-capT/Nhedge
-#initialoutlay<-BlackScholesFormula(S0,capT,strike, r,0,sigma_hedge,1,1)
-initialoutlay<-BlackScholesFormula(S0,capT,strike, r,0,sigma,1,1)
+for (opttype_ in c(1,3)){
 
-Vpf<-rep(initialoutlay,length=Nrep)
-
-a<-BlackScholesFormula(St,capT,strike, r,0,sigma_hedge,1,2)
-b<-Vpf-a*St
-
-for(i in 2:Nhedge){
-  St<-St*exp((mu-0.5*sigma^2)*dt +sigma*sqrt(dt)*rnorm(Nrep))	
-  Vpf<-a*St+b*exp(dt*r)    
-  a<-BlackScholesFormula(St,(capT-(i-1)*dt),strike, r,0,sigma_hedge,1,2)
-  b<-Vpf-a*St
+  main_code <- function() {
+    St<-rep(S0, length=Nrep)
+    dt<-capT/Nhedge
+    #initialoutlay<-BlackScholesFormula(S0,capT,strike, r,0,sigma_hedge,1,1)
+    initialoutlay<-BlackScholesFormula(S0,capT,strike, r,0,sigma,opttype_,1)
+    
+    Vpf<-rep(initialoutlay,length=Nrep)
+    
+    a<-BlackScholesFormula(St,capT,strike, r,0,sigma_hedge,opttype_,2)
+    b<-Vpf-a*St
+    
+    for(i in 2:Nhedge){
+      St<-St*exp((mu-0.5*sigma^2)*dt +sigma*sqrt(dt)*rnorm(Nrep))
+      Vpf<-a*St+b*exp(dt*r)    
+      a<-BlackScholesFormula(St,(capT-(i-1)*dt),strike, r,0,sigma_hedge,opttype_,2)
+      b<-Vpf-a*St
+    }
+    
+    St<-St*exp((mu-0.5*sigma^2)*dt +sigma*sqrt(dt)*rnorm(Nrep))
+    Vpf<-a*St+b*exp(dt*r)
+    if (opttype_ == 1){optionpayoff<-pmax(St-strike,0)}
+    if (opttype_ == 2){optionpayoff<-pmax(strike-St,0)}
+    if (opttype_ == 3){optionpayoff<-pmax(strike-St,0)/abs(strike-St)}
+    hedgeerror<-Vpf-optionpayoff
+    
+    
+    # SUMMARY STATS & GRAPHS
+    # ======================
+    print("---------------------------------------------------")
+    print(c(paste("r-mu =",r-mu),paste("sigma-sigma_hedge =",sigma-sigma_hedge),paste("# hegde points =",Nhedge)))
+    
+    print(paste("Initial investment =",round(initialoutlay,4)))
+    print(paste("Average discounted option payoff =",round(exp(-r*capT)*mean(optionpayoff),4)))
+    print(paste("Average discounted portfolio value =",round(exp(-r*capT)*mean(Vpf),4)))
+    print(paste("Terminal Hedge error mean =",mean(abs(hedgeerror))))
+    print(paste("Terminal Hedge error SD =",sd(hedgeerror)))
+    
+    ToFile<-FALSE
+    #par(mfrow=c(1,2))
+    if (ToFile) png(file="Scatter.png",res=300,width = 3*480, height = 3*480)
+    #(mfrow=c(1,2))
+    histdata <- hist(hedgeerror,plot=FALSE,freq=1)
+    histdata <- data.frame(Data=histdata$density,Index=histdata$mids)
+    rownames(histdata) <- histdata$Index
+    if (opttype_ != 3){xlm <- 1}
+    if (opttype_ == 3){xlm <- 5}
+    bp <- barplot(height=histdata$Data,width=1,xlim=c(xlm,0), axes=FALSE, frame.plot=FALSE,xlab="",ylab="",main="", horiz=TRUE)
+    axis(side=4, at = bp, labels=histdata$Index)#,labels=histdata$mids)
+    mtext("Hedge error", side = 4, line = 1.9, col = 1)
+    axis(side=3, at = (1:9)/10*xlm, line=-2, labels = paste((1:9)*10*xlm,"%"))
+    par(new=TRUE)
+    if (opttype_ != 3){
+      plot(St,Vpf,col="blue",xlab="S(T)",ylab="",xlim=c(50,200),ylim=c(-5,105))
+      text(50,125,paste("# hegde points =",Nhedge),adj=0)
+      text(50,120,paste("r-mu =",r-mu),adj=0)
+      text(50,115,paste("sigma-sigma_hedge =",sigma-sigma_hedge),adj=0)
+      #text(180,122,"hedge error", adj=0)
+      #text(160,115,"(histogram, y-axis)", adj=0)
+      text(197,100*ecdf(histdata$Index)(0),"0")
+      text(200,100*ecdf(histdata$Index)(0),"--")
+    }
+    if (opttype_ == 3){
+      plot(St,Vpf,col="blue",xlab="S(T)",ylab="",xlim=c(50,200),ylim=c(-1,2))
+      text(50,2.5,paste("# hegde points =",Nhedge),adj=0)
+      text(50,2.38,paste("r-mu =",r-mu),adj=0)
+      text(50,2.25,paste("sigma-sigma_hedge =",sigma-sigma_hedge),adj=0)
+      #text(180,122,"hedge error", adj=0)
+      #text(160,115,"(histogram, y-axis)", adj=0)
+      text(197,3*ecdf(histdata$Index)(0)-1,"0")
+      text(200,3*ecdf(histdata$Index)(0)-1,"--")
+    }
+    mtext("Value of hedge portfolio", side = 2, line = 2, col = 1)
+    title("Discrete hedging of a call-option", line = 3.25)
+    if (opttype_ == 1){
+      points(50:200,pmax(50:200 - strike,0),type='l',lwd=3) 
+    }
+    if (opttype_ == 2){
+      points(50:200,pmax(strike-50:200,0),type='l',lwd=3) 
+    }
+    if (opttype_ == 3){
+      points(50:200,pmax(strike-50:200,0)/abs(strike-50:200),type='l',lwd=3) 
+    }
+    
+    if (ToFile) dev.off()
+    reset_var() # dårlig kode praksis men meget belejligt her.
+  }
+  
+  par(mfrow=c(1,2),mar=c(5,3,5,3))
+  main_code() # standard
+  
+  sigma_hedge <- 0.1
+  main_code()
+  
+  par(mfrow=c(1,2))
+  mu <- 0.12
+  main_code()
+  
+  Nhedge <- 10
+  main_code()
 }
-
-St<-St*exp((mu-0.5*sigma^2)*dt +sigma*sqrt(dt)*rnorm(Nrep))
-Vpf<-a*St+b*exp(dt*r)
-optionpayoff<-pmax(St-strike,0)
-hedgeerror<-Vpf-optionpayoff
-
-
-# SUMMARY STATS & GRAPHS
-# ======================
-
-print(paste("Initial investment =",round(initialoutlay,4)))
-print(paste("Average discounted option payoff =",round(exp(-r*capT)*mean(optionpayoff),4)))
-print(paste("Average discounted portfolio value =",round(exp(-r*capT)*mean(Vpf),4)))
-print(paste("Terminal Hedge error mean =",mean(abs(hedgeerror))))
-print(paste("Terminal Hedge error SD =",sd(hedgeerror)))
-
-ToFile<-FALSE
-
-if (ToFile) png(file="Scatter.png",res=300,width = 3*480, height = 3*480)
-
-plot(St,Vpf,col="blue",xlab="S(T)",ylab="Value of hedge portfolio",main="Discrete hedging of a call-option",xlim=c(50,200),ylim=c(-5,105))
-text(50,100,paste("# hegde points =",Nhedge),adj=0)
-text(50,95,paste("r-mu =",r-mu),adj=0)
-text(50,90,paste("sigma-sigma_hedge =",sigma-sigma_hedge),adj=0)
-points(50:200,pmax(50:200 - strike,0),type='l',lwd=3)
-
-if (ToFile) dev.off()
