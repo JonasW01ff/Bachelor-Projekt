@@ -744,42 +744,40 @@ uniroot(difference, c(10^-6,10),obsprice=obsprice,spot=spot,timetomat=timetomat,
 
 
 hedgeerror_plotter <- function(hedgeerror,St,Vpf,strike,opttype_=1){
-  histdata <- hist(hedgeerror,plot=FALSE,freq=FALSE,breaks=10)
+  St <- St-strike
+  strike <- 0
+  lim <- max(abs(hedgeerror))
+  histdata <- hist(hedgeerror,plot=FALSE,freq=FALSE,breaks=pretty(c(-lim,lim),n=20))
   histdata <- data.frame(Data=histdata$density,Index=histdata$mids)
   rownames(histdata) <- histdata$Index
   if (opttype_ != 3){xlm <- 1}
   if (opttype_ == 3){xlm <- 5}
-  bp <- barplot(height=histdata$Data,width=1,xlim=c(xlm/10,0), axes=FALSE, frame.plot=FALSE,xlab="",ylab="",main="", horiz=TRUE)
+  xlm <- max(histdata$Data)*3
+  bp <- barplot(height=histdata$Data,width=1,pos=0,xlim=c(xlm,0), axes=FALSE, frame.plot=FALSE,xlab="",ylab="",main="", horiz=TRUE)
   axis(side=4, at = bp, labels=histdata$Index)#,labels=histdata$mids)
   mtext("Hedge error", side = 4, line = 1.9, col = 1)
-  axis(side=3, at = (1:9)/100*xlm, line=-2, labels = paste((1:9)*xlm,"%"))
+  axis(side=3, at = pretty(c(xlm*0.9,xlm*0.1),n=10), line=-2, labels = paste(pretty(c(xlm*0.9,xlm*0.1),n=10)*100,"%"))
   par(new=TRUE)
-  if (opttype_ != 3){
-    plot(St,Vpf,col="blue",xlab="S(T)",ylab="",xlim=c(50,1500),ylim=c(-5,1505))
-    #text(50,125,paste("# hegde points =",Nhedge),adj=0)
-    #text(50,120,paste("r-mu =",r-mu),adj=0)
-    #text(50,115,paste("sigma-sigma_hedge =",sigma-sigma_hedge),adj=0)
-    #text(197,1480*ecdf(histdata$Index)(0),"0")
-    #text(200,1480*ecdf(histdata$Index)(0),"--")
-  }
-  if (opttype_ == 3){
-    plot(St,Vpf,col="blue",xlab="S(T)",ylab="",xlim=c(50,200),ylim=c(-1,2))
-    text(50,2.5,paste("# hegde points =",Nhedge),adj=0)
-    text(50,2.38,paste("r-mu =",r-mu),adj=0)
-    text(50,2.25,paste("sigma-sigma_hedge =",sigma-sigma_hedge),adj=0)
-    #text(197,3*ecdf(histdata$Index)(0)-1,"0")
-    #text(200,3*ecdf(histdata$Index)(0)-1,"--")
-  }
+  
+  xlim_top <- max(St)*1.5
+  ylim_top <- max(abs(Vpf))*1.3
+  xlim_bot <- min(St)
+  
+  plot(St,Vpf,col="blue",xlab="S(T)-K",ylab="",xlim=c(xlim_bot,xlim_top),ylim=c(-ylim_top,ylim_top))
+  #text(50,125,paste("# hegde points =",Nhedge),adj=0)
+  #text(50,120,paste("r-mu =",r-mu),adj=0)
+  #text(50,115,paste("sigma-sigma_hedge =",sigma-sigma_hedge),adj=0)
   mtext("Value of hedge portfolio", side = 2, line = 2, col = 1)
   title("Discrete hedging of a call-option", line = 3.25)
+  garbage <- function(X){ X[abs(X)>ylim_top/1.2]=NaN;return(X) }
   if (opttype_ == 1){
-    points(50:1500,pmax(50:1500 - strike,0),type='l',lwd=3) 
+    points(xlim_bot:xlim_top,garbage(pmax(xlim_bot:xlim_top - strike,0)),type='l',lwd=3) 
   }
   if (opttype_ == 2){
-    points(50:200,pmax(strike-50:200,0),type='l',lwd=3) 
+    points(xlim_bot:xlim_top,pmax(strike-xlim_bot:xlim_top,0),type='l',lwd=3) 
   }
   if (opttype_ == 3){
-    points(50:200,pmax(strike-50:200,0)/abs(strike-50:200),type='l',lwd=3) 
+    points(xlim_bot:xlim_top,pmax(strike-xlim_bot:xlim_top,0)/abs(strike-xlim_bot:xlim_top),type='l',lwd=3) 
   }
 }
 
@@ -789,7 +787,7 @@ sigma_special <- NaN
 
 hedge_func <- function(data){ #Tyv stjålet fra rolfs kode
   #S0<-100
-  S0 <- data[,1]-data[,1]+1000#as.numeric(St[1])
+  S0 <- data[,1]#as.numeric(St[1])
   r <- 0#0.02
   mu <- rep(NaN, length(data[1,]))
   for (i in 1:length(data[1,])){
@@ -809,13 +807,13 @@ hedge_func <- function(data){ #Tyv stjålet fra rolfs kode
   }
 
   capT<-1
-  strike<-1000
+  strike<-data[,1]
   
   Nhedge<-length(data[1,])-1#10#252
 
   Nrep<-length(data[,1])#1000  
   
-  St<-data[,1]-data[,1]+1000#rep(S0, length=Nrep)
+  St<-data[,1]#rep(S0, length=Nrep)
   dt<-capT/Nhedge
   initialoutlay<-BlackScholesFormula(S0,capT,strike, r,0,sigma_hedge,1,1)
   #initialoutlay<-BlackScholesFormula(S0,capT,strike, r,0,sigma,1,1)
@@ -827,14 +825,14 @@ hedge_func <- function(data){ #Tyv stjålet fra rolfs kode
   
   for(i in 2:Nhedge){
     #St<-St*exp((mu-0.5*sigma^2)*dt +sigma*sqrt(dt)*rnorm(Nrep))	
-    St <- data[,i]-data[,1]+1000
+    St <- data[,i]
     Vpf<-a*St+b*exp(dt*r)    
     a<-BlackScholesFormula(St,(capT-(i-1)*dt),strike, r,0,sigma_hedge,1,2)
     b<-Vpf-a*St
   }
   
   #St<-St*exp((mu-0.5*sigma^2)*dt +sigma*sqrt(dt)*rnorm(Nrep))
-  St <- data[,Nhedge+1]-data[,1]+1000
+  St <- data[,Nhedge+1]
   Vpf<-a*St+b*exp(dt*r)
   optionpayoff<-pmax(St-strike,0)
   hedgeerror<-Vpf-optionpayoff

@@ -110,6 +110,46 @@ reset_var()
 # HEDGE
 # =====
 
+
+hedgeerror_plotter <- function(hedgeerror,St,Vpf,strike,opttype_=1){
+  St <- St-strike
+  strike <- 0
+  lim <- max(abs(hedgeerror))
+  histdata <- hist(hedgeerror,plot=FALSE,freq=FALSE,breaks=pretty(c(-lim,lim),n=20))
+  histdata <- data.frame(Data=histdata$density,Index=histdata$mids)
+  rownames(histdata) <- histdata$Index
+  if (opttype_ != 3){xlm <- 1}
+  if (opttype_ == 3){xlm <- 5}
+  xlm <- max(histdata$Data)*3
+  bp <- barplot(height=histdata$Data,width=1,pos=0,xlim=c(xlm,0), axes=FALSE, frame.plot=FALSE,xlab="",ylab="",main="", horiz=TRUE)
+  axis(side=4, at = bp, labels=histdata$Index)#,labels=histdata$mids)
+  mtext("Hedge error", side = 4, line = 1.9, col = 1)
+  axis(side=3, at = pretty(c(xlm*0.9,xlm*0.1),n=10), line=-2, labels = paste(pretty(c(xlm*0.9,xlm*0.1),n=10)*100,"%"))
+  par(new=TRUE)
+  
+  xlim_top <- max(St)*1.5
+  ylim_top <- max(abs(Vpf))*1.3
+  xlim_bot <- min(St)
+  
+  plot(St,Vpf,col="blue",xlab="S(T)-K",ylab="",xlim=c(xlim_bot,xlim_top),ylim=c(-ylim_top,ylim_top))
+  #text(50,125,paste("# hegde points =",Nhedge),adj=0)
+  #text(50,120,paste("r-mu =",r-mu),adj=0)
+  #text(50,115,paste("sigma-sigma_hedge =",sigma-sigma_hedge),adj=0)
+  mtext("Value of hedge portfolio", side = 2, line = 2, col = 1)
+  title("Discrete hedging of a call-option", line = 3.25)
+  garbage <- function(X){ X[abs(X)>ylim_top/1.2]=NaN;return(X) }
+  if (opttype_ == 1){
+    points(xlim_bot:xlim_top,garbage(pmax(xlim_bot:xlim_top - strike,0)),type='l',lwd=3) 
+  }
+  if (opttype_ == 2){
+    points(xlim_bot:xlim_top,pmax(strike-xlim_bot:xlim_top,0),type='l',lwd=3) 
+  }
+  if (opttype_ == 3){
+    points(xlim_bot:xlim_top,pmax(strike-xlim_bot:xlim_top,0)/abs(strike-xlim_bot:xlim_top),type='l',lwd=3) 
+  }
+}
+
+
 for (opttype_ in c(1,3)){
 
   main_code <- function() {
