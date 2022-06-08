@@ -609,18 +609,22 @@ X_VIX <- as.vector(VIX[,6]/100)#head(VIX[,6],100)
 
 for (i in 1:2){
   if (i==1){
+    print("SP500")
     var <- X_SPX
     valname <- "SP500"
+    roll_func <- function(X){sqrt(MLE_GBM(X)[2])}
     }
   if (i==2){
+    print("VIX")
     var <- X_VIX
     valname <- "VIX"
+    roll_func <- function(X){mean(X)/100}
     }
   
   MLE_sigma_rolling_month <- runner(
     var,
     k=window,
-    f= function(X){sqrt(MLE_GBM(X)[2])}
+    f= roll_func
   )
 
   returns <-  c(NaN,tail(var,-1)/head(var,-1))
@@ -739,7 +743,50 @@ uniroot(difference, c(10^-6,10),obsprice=obsprice,spot=spot,timetomat=timetomat,
 }
 
 
+hedgeerror_plotter <- function(hedgeerror,St,Vpf,strike,opttype_=1){
+  histdata <- hist(hedgeerror,plot=FALSE,freq=FALSE,breaks=10)
+  histdata <- data.frame(Data=histdata$density,Index=histdata$mids)
+  rownames(histdata) <- histdata$Index
+  if (opttype_ != 3){xlm <- 1}
+  if (opttype_ == 3){xlm <- 5}
+  bp <- barplot(height=histdata$Data,width=1,xlim=c(xlm/10,0), axes=FALSE, frame.plot=FALSE,xlab="",ylab="",main="", horiz=TRUE)
+  axis(side=4, at = bp, labels=histdata$Index)#,labels=histdata$mids)
+  mtext("Hedge error", side = 4, line = 1.9, col = 1)
+  axis(side=3, at = (1:9)/100*xlm, line=-2, labels = paste((1:9)*xlm,"%"))
+  par(new=TRUE)
+  if (opttype_ != 3){
+    plot(St,Vpf,col="blue",xlab="S(T)",ylab="",xlim=c(50,1500),ylim=c(-5,1505))
+    #text(50,125,paste("# hegde points =",Nhedge),adj=0)
+    #text(50,120,paste("r-mu =",r-mu),adj=0)
+    #text(50,115,paste("sigma-sigma_hedge =",sigma-sigma_hedge),adj=0)
+    #text(197,1480*ecdf(histdata$Index)(0),"0")
+    #text(200,1480*ecdf(histdata$Index)(0),"--")
+  }
+  if (opttype_ == 3){
+    plot(St,Vpf,col="blue",xlab="S(T)",ylab="",xlim=c(50,200),ylim=c(-1,2))
+    text(50,2.5,paste("# hegde points =",Nhedge),adj=0)
+    text(50,2.38,paste("r-mu =",r-mu),adj=0)
+    text(50,2.25,paste("sigma-sigma_hedge =",sigma-sigma_hedge),adj=0)
+    #text(197,3*ecdf(histdata$Index)(0)-1,"0")
+    #text(200,3*ecdf(histdata$Index)(0)-1,"--")
+  }
+  mtext("Value of hedge portfolio", side = 2, line = 2, col = 1)
+  title("Discrete hedging of a call-option", line = 3.25)
+  if (opttype_ == 1){
+    points(50:1500,pmax(50:1500 - strike,0),type='l',lwd=3) 
+  }
+  if (opttype_ == 2){
+    points(50:200,pmax(strike-50:200,0),type='l',lwd=3) 
+  }
+  if (opttype_ == 3){
+    points(50:200,pmax(strike-50:200,0)/abs(strike-50:200),type='l',lwd=3) 
+  }
+}
+
 par(mfrow=c(1,1))
+
+sigma_special <- NaN
+
 hedge_func <- function(data){ #Tyv stjålet fra rolfs kode
   #S0<-100
   S0 <- data[,1]-data[,1]+1000#as.numeric(St[1])
@@ -756,7 +803,11 @@ hedge_func <- function(data){ #Tyv stjålet fra rolfs kode
   for (i in 1:length(data[1,])){
     sigma_hedge[i] <- sqrt(MLE_GBM(data[i,])[2])
   }
-  
+  if (!is.na(sigma_special)){
+    print("Using new special sigma")
+    sigma_hedge <- sigma_special
+  }
+
   capT<-1
   strike<-1000
   
@@ -802,19 +853,78 @@ hedge_func <- function(data){ #Tyv stjålet fra rolfs kode
   ToFile<-FALSE
   
   if (ToFile) png(file="Scatter.png",res=300,width = 3*480, height = 3*480)
-  plot(St,Vpf,col="blue",xlab="S(T)",ylab="Value of hedge portfolio",main="Discrete hedging of a call-option",xlim=c(50,1500),ylim=c(-5,1505))
-  text(50,100,paste("# hegde points =",Nhedge),adj=0)
+  hedgeerror_plotter(hedgeerror,St,Vpf,strike)
+  #plot(St,Vpf,col="blue",xlab="S(T)",ylab="Value of hedge portfolio",main="Discrete hedging of a call-option",xlim=c(50,1500),ylim=c(-5,1505))
+  #text(50,100,paste("# hegde points =",Nhedge),adj=0)
   #text(50,95,paste("r-mu =",r-mu),adj=0)
   #text(50,90,paste("sigma-sigma_hedge =",sigma-sigma_hedge),adj=0)
-  points(50:1500,pmax(50:1500 - strike,0),type='l',lwd=3)
+  #points(50:1500,pmax(50:1500 - strike,0),type='l',lwd=3)
   
   if (ToFile) dev.off()
   
 }
 
-bmonth <- data.frame(split(tail(X_SPX,length(X_SPX)%%21*(-1)),1:21)) #bmonth[1,] would give you the first buisness month
-
+if(length(X_SPX)%%21==0){ # Dette er for beskytte mod en bug der kan forkomme var 21 dag (Så fjern ikke
+  # dette stykke selvom det fungere idag!)
+  bmonth <- data.frame(split(X_SPX,1:21)) #bmonth[1,] would give you the first buisness month
+} else {
+  bmonth <- data.frame(split(tail(X_SPX,length(X_SPX)%%21*(-1)),1:21)) #bmonth[1,] would give you the first buisness month
+}
 hedge_func(bmonth)
+
+sigma_special <- mean(X_VIX/100)
+hedge_func(bmonth)
+print("new things")
+
+for (i in 1:2){
+  if (i==1){
+    print("SP500")
+    var <- X_SPX
+    valname <- "SP500"
+    roll_func <- function(X){sqrt(MLE_GBM(X)[2])}
+  }
+  if (i==2){
+    print("VIX")
+    var <- X_VIX
+    valname <- "VIX"
+    roll_func <- function(X){mean(X)/100}
+  }
+  
+  MLE_sigma_rolling_month <- runner(
+    var,
+    k=window,
+    f= roll_func
+  )
+  
+  returns <-  c(NaN,tail(var,-1)/head(var,-1))
+  EWMA <- runner(
+    MLE_sigma_rolling_month,
+    k=300,
+    lag=-window,
+    f=function(X){
+      X <- rev(X)
+      out <- 0
+      for (i in 1:(window-1+1)){
+        out <- lambda*out+(1-lambda)*X[i]^2
+        #if (!is.na(out_)){out <- out_}
+      }
+      return(sqrt(out))
+    }
+  )
+  
+  #plot(MLE_sigma_rolling_month)
+  print(c("rolling: ",mean(MLE_sigma_rolling_month,na.rm=TRUE)))
+  print(c("EMVA",mean(EWMA, na.rm=TRUE)))
+  
+  #plot(EWMA)
+  
+  data <- data.frame(cbind(MLE_sigma_rolling_month,EWMA))
+  sigma_special <- mean(MLE_sigma_rolling_month,na.rm=TRUE)
+  hedge_func(bmonth)
+  sigma_special <- mean(EWMA, na.rm=TRUE)
+  hedge_func(bmonth)
+    
+}
 
 #MLE_GBM <- MLE_GBM_NORM # Dårlig kode praksis, me ret belejligt. 
 #bmonth <- data.frame(split(tail(X_SPX,length(X_SPX)%%21*(-1)),1:21))
