@@ -874,7 +874,7 @@ hedge_func(bmonth)
 
 sigma_special <- mean(X_VIX/100)
 hedge_func(bmonth)
-print("new things")
+
 
 for (i in 1:2){
   if (i==1){
