@@ -156,7 +156,7 @@ for (opttype_ in c(1,3)){
     St<-rep(S0, length=Nrep)
     dt<-capT/Nhedge
     #initialoutlay<-BlackScholesFormula(S0,capT,strike, r,0,sigma_hedge,1,1)
-    initialoutlay<-BlackScholesFormula(S0,capT,strike, r,0,sigma,opttype_,1)
+    initialoutlay<-BlackScholesFormula(S0,capT,strike, r,0,sigma_hedge,opttype_,1)
     
     Vpf<-rep(initialoutlay,length=Nrep)
     
@@ -164,7 +164,7 @@ for (opttype_ in c(1,3)){
     b<-Vpf-a*St
     
     for(i in 2:Nhedge){
-      St<-St*exp((mu-0.5*sigma^2)*dt +(sigma-i/Nhedge)*sqrt(dt)*rnorm(Nrep))
+      St<-St*exp((mu-0.5*sigma^2)*dt +sigma*sqrt(dt)*rnorm(Nrep))	
       Vpf<-a*St+b*exp(dt*r)    
       a<-BlackScholesFormula(St,(capT-(i-1)*dt),strike, r,0,sigma_hedge,opttype_,2)
       b<-Vpf-a*St
@@ -181,6 +181,7 @@ for (opttype_ in c(1,3)){
     # SUMMARY STATS & GRAPHS
     # ======================
     print("---------------------------------------------------")
+    print(paste(c("Option",opttype_)))
     print(c(paste("r-mu =",r-mu),paste("sigma-sigma_hedge =",sigma-sigma_hedge),paste("# hegde points =",Nhedge)))
     
     print(paste("Initial investment =",round(initialoutlay,4)))
