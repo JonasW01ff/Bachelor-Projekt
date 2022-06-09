@@ -447,11 +447,13 @@ SDEcreator <- function(kappa,theta,sigma2,n,Xt){
 print("VIK-data")
 getSymbols("^VIX",src="yahoo")
 X<-as.vector(VIX[,6])#head(VIX[,6],100)
+png(filename="QQ_VIX_vs_lnVIX.png",res=300,width = 3*480, height = 3*480)
 par(mfrow=c(1,2))
 qqnorm(X, pch = 1, frame = FALSE, main="Normal QQ-plot af VIX")
 qqline(X, col = "steelblue", lwd = 2)
 qqnorm(log(X), pch = 1, frame = FALSE, main="Normal QQ-plot af ln(VIX)")
 qqline(log(X), col = "steelblue", lwd = 2)
+dev.off()
 MLE95(X)
 MLE95(log(X))
 
@@ -487,6 +489,7 @@ ggplot(melt(data, id="day")) + geom_line(aes(x = day, y=value, group=variable, c
                                                                                                                                     axis.title=element_text(size=20))
 
 
+ggsave("simul_VIX_OU.png")
 X<-as.vector(VIX[,6])
 X <- log(X)
 X_1 <- head(X,-1)
@@ -495,6 +498,7 @@ x0 <- sum(X)
 x1 <- sum(X_1)
 x01 <- sum(X*X_1)
 x11 <- sum(X_1*X_1)
+
 
 hat_b <- sum(X-X_1*(x01/x11) )/sum(1-X_1*(x1/x11) )
 hat_a <- (x01-x1*hat_b)/x11
@@ -518,6 +522,7 @@ ggplot(melt(data, id="day")) + geom_path(aes(x = day, y=value, group=variable, c
 
 
 
+ggsave("simul_lnVIX_OU.png")
 ######
 ##  Pricing and hedging in the Black-Scholes model
 ######
@@ -536,10 +541,12 @@ data["day"] = index(VIX)
 par(mfrow=c(1,1))
 data <- melt(data ,  id.vars = 'day', variable.name = 'indeks')
 ggplot(data, aes(day,value)) + geom_line(aes(colour = indeks))
-
+ggsave("SP500_vs_VIX.png")
+png(filename="SP500_QQplot.png",res=300,width = 3*480, height = 3*480)
 par(mfrow=c(1,1))
 qqnorm(X_SPX, pch = 1, frame = FALSE, main="Normal QQ-plot af S&P500")
 qqline(X_SPX, col = "steelblue", lwd = 2)
+dev.off()
 #qqnorm(log(X_SPX), pch = 1, frame = FALSE, main="Normal QQ-plot af ln(S&P500)")
 #qqline(log(X_SPX), col = "steelblue", lwd = 2)
 
@@ -578,7 +585,7 @@ MLE <- function(X){
 }
 MLE_GBM <- function(X){
   "
-  Tager data, og giver MLE for OU-process tilbage
+  Tager data, og giver MLE for GBM-process tilbage
   
   
   -----
@@ -600,10 +607,11 @@ MLE_GBM <- function(X){
   sigma <- sd(residualer/X)
   return(c(mu,sigma^2))
 }
-
-MLE_GBM(X_SPX)
+print("SP500 volatilitet")
+print(sqrt(MLE_GBM(X_SPX)[2]))
 
 window <- 21
+EWMA_window <- 90
 lambda <- 0.94
 X_VIX <- as.vector(VIX[,6]/100)#head(VIX[,6],100)
 
@@ -628,15 +636,16 @@ for (i in 1:2){
   )
 
   returns <-  c(NaN,tail(var,-1)/head(var,-1))
+  scale_up <- 1/((1-lambda)*sum(lambda^(0:(EWMA_window-1))))
   EWMA <- runner(
     MLE_sigma_rolling_month,
-    k=300,
-    lag=-window,
+    k=EWMA_window,
+    lag=0,#-window,
     f=function(X){
       X <- rev(X)
       out <- 0
-      for (i in 1:(window-1+1)){
-        out <- lambda*out+(1-lambda)*X[i]^2
+      for (i in 0:(EWMA_window-1)){
+        out <- out+(1-lambda)*lambda^i*X[i+1]^2*scale_up#lambda*out+(1-lambda)*X[i]^2
         #if (!is.na(out_)){out <- out_}
       }
       return(sqrt(out))
@@ -653,12 +662,14 @@ for (i in 1:2){
   if(i==1){
     data["dag"] = index(X_SPX)
     data <- melt(data ,  id.vars = 'dag', variable.name = 'variabel', value.name = "SP500")
-    print(ggplot(data, aes(dag,SP500)) + geom_line(aes(colour = variabel)))
+    ggplot(data, aes(dag,SP500)) + geom_line(aes(colour = variabel))
+    ggsave("SP500_rolling_volatility.png")
     }
   if(i==2){
     data["dag"] = index(X_VIX)
     data <- melt(data ,  id.vars = 'dag', variable.name = 'variabel', value.name = "VIX")
-    print(ggplot(data, aes(dag,VIX)) + geom_line(aes(colour = variabel)))
+    ggplot(data, aes(dag,VIX)) + geom_line(aes(colour = variabel))
+    ggsave("VIX_rolling_volatility.png")
     }  
 }
 
@@ -781,7 +792,7 @@ hedgeerror_plotter <- function(hedgeerror,St,Vpf,strike,opttype_=1){
   }
 }
 
-par(mfrow=c(1,1))
+#par(mfrow=c(1,1))
 
 sigma_special <- NaN
 
@@ -797,13 +808,14 @@ hedge_func <- function(data){ #Tyv stjålet fra rolfs kode
   
   sigma <- 20.01
   sigma_hedge <- 0.07#20.01#/sqrt(21)#MLE_GBM(X)[2]
-  sigma_hedge <- rep(NaN, length(data[1,]))
-  for (i in 1:length(data[1,])){
+  sigma_hedge <- rep(NaN, length(data[,1]))
+  for (i in 1:length(data[,1])){
     sigma_hedge[i] <- sqrt(MLE_GBM(data[i,])[2])
   }
-  if (!is.na(sigma_special)){
+  if (!all(is.na(sigma_special))){
     print("Using new special sigma")
     sigma_hedge <- sigma_special
+    sigma_special <<- NaN
   }
 
   capT<-1
@@ -868,18 +880,66 @@ if(length(X_SPX)%%21==0){ # Dette er for beskytte mod en bug der kan forkomme va
 } else {
   bmonth <- data.frame(split(tail(X_SPX,length(X_SPX)%%21*(-1)),1:21)) #bmonth[1,] would give you the first buisness month
 }
-hedge_func(bmonth)
+if(length(X_VIX)%%21==0){ # Dette er for beskytte mod en bug der kan forkomme var 21 dag (Så fjern ikke
+  # dette stykke selvom det fungere idag!)
+  vmonth <- data.frame(split(X_VIX/100,1:21)) #bmonth[1,] would give you the first buisness month
+} else {
+  vmonth <- data.frame(split(tail(X_VIX,length(X_VIX)%%21*(-1)),1:21)) #bmonth[1,] would give you the first buisness month
+}
 
+png(filename="option_call_monthlyGBM_meanVIX100.png",res=300,width = 5*480, height = 3*480)
+par(mfrow=c(1,2))
+print("-----------------------")
+print("Standard")
+hedge_func(bmonth)
+print("-----------------------")
+print("mean(VIX/100)")
 sigma_special <- mean(X_VIX/100)
 hedge_func(bmonth)
-
+dev.off()
+png(filename="option_call_monthlyGBM_monthlyVIX100EWMA.png",res=300,width = 5*480, height = 3*480)
+par(mfrow=c(1,2))
+lambda <- 0.94
+sigma_special <- rep(NaN,length(bmonth[,1]))
+EWMA_func=function(X){
+  X <- rev(X)
+  out <- 0
+  for (i in 1:(window-1+1)){
+    out <- lambda*out+(1-lambda)*X[i]^2
+    #if (!is.na(out_)){out <- out_}
+  }
+  return(sqrt(out))
+}
+for (i in 1:length(bmonth[,1])){
+  sigma_special[i] <- sqrt(MLE_GBM(bmonth[i,])[2])
+}
+sigma_special <- mean(sigma_special)
+print("-----------------------")
+print("mean(hver måned GBM af sigma)")
+hedge_func(bmonth)
+sigma_special <- rep(NaN,length(vmonth[,1]))
+for (i in 2:length(bmonth[,1])){
+  sigmas_ss <- rep(NaN,21)
+  for (j in 1:length(vmonth[1,])){
+    intv2 <- head(c(as.numeric(vmonth[i-1,j:21]),as.numeric(vmonth[i,1:j])),-1)
+    sigmas_ss[j] <- EWMA_func(intv2)
+  }
+  sigma_special[i] <- mean(sigmas_ss)
+}
+sigma_special[1] <- sigma_special[2]
+print("-----------------------")
+print("månedlig mean(EWMA af VIX/100 21 dage til bage hver dag i måned)")
+hedge_func(bmonth)
+dev.off()
 
 for (i in 1:2){
+  png(filename=paste(i,"product_call_meanrolling_meanEMVA.png"),res=300,width = 5*480, height = 3*480)
+  par(mfrow=c(1,2))
   if (i==1){
     print("SP500")
     var <- X_SPX
     valname <- "SP500"
-    roll_func <- function(X){sqrt(MLE_GBM(X)[2])}
+    roll_func <- function(X){MLE_GBM(X)[2]}
   }
   if (i==2){
     print("VIX")
@@ -911,8 +971,9 @@ for (i in 1:2){
   )
   
   #plot(MLE_sigma_rolling_month)
-  print(c("rolling: ",mean(MLE_sigma_rolling_month,na.rm=TRUE)))
-  print(c("EMVA",mean(EWMA, na.rm=TRUE)))
+  print("-----------------------")
+  print(c("middel af rolling: ",mean(MLE_sigma_rolling_month,na.rm=TRUE)))
+  print(c("middel af EMVA",mean(EWMA, na.rm=TRUE)))
   
   #plot(EWMA)
   
@@ -920,9 +981,10 @@ for (i in 1:2){
   sigma_special <- mean(MLE_sigma_rolling_month,na.rm=TRUE)
   hedge_func(bmonth)
   sigma_special <- mean(EWMA, na.rm=TRUE)
+  print("-----------------------")
   hedge_func(bmonth)
-    
-}
+  dev.off()
+  }
 
 #MLE_GBM <- MLE_GBM_NORM # Dårlig kode praksis, me ret belejligt. 
 #bmonth <- data.frame(split(tail(X_SPX,length(X_SPX)%%21*(-1)),1:21))

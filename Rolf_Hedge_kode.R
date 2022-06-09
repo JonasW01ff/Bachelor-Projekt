@@ -131,7 +131,7 @@ hedgeerror_plotter <- function(hedgeerror,St,Vpf,strike,opttype_=1){
   ylim_top <- max(abs(Vpf))*0.9
   xlim_bot <- min(St)
   
-  plot(St,Vpf,col="blue",xlab="S(T)-K",ylab="",xlim=c(xlim_bot,xlim_top),ylim=c(-ylim_top,ylim_top))
+  plot(St,Vpf,  col=rgb(red = 0, green = 0, blue = 1, alpha = 0.5),xlab="S(T)-K",ylab="",xlim=c(xlim_bot,xlim_top),ylim=c(-ylim_top,ylim_top))
   mtext(paste("# hegde points =",Nhedge), side = 3, line = 2, col = 1)
   mtext(paste("r-mu =",r-mu), side = 3, line = 1, col = 1)
   mtext(paste("sigma-sigma_hedge =",sigma-sigma_hedge), side = 3, line = 0, col = 1)
@@ -200,19 +200,21 @@ for (opttype_ in c(1,3)){
     if (ToFile) dev.off()
     reset_var() # dårlig kode praksis men meget belejligt her.
   }
-  
+  png(filename=paste(opttype_,"opttype_standard_sigma.png"),res=300,width = 4*480, height = 3*480)
   par(mfrow=c(1,2),mar=c(5,3,5,3))
   main_code() # standard
   
   sigma_hedge <- 0.1
   main_code()
-  
+  dev.off()
+  png(filename=paste(opttype_,"opttype_mu_Nhedge.png"),res=300,width = 4*480, height = 3*480)
   par(mfrow=c(1,2))
   mu <- 0.12
   main_code()
   
   Nhedge <- 10
   main_code()
+  dev.off()
 }
 
 
