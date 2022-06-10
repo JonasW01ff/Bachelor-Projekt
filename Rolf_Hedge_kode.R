@@ -123,7 +123,7 @@ hedgeerror_plotter <- function(hedgeerror,St,Vpf,strike,opttype_=1){
   xlm <- max(histdata$Data)*3
   bp <- barplot(height=histdata$Data,width=1,pos=0,xlim=c(xlm,0), axes=FALSE, frame.plot=FALSE,xlab="",ylab="",main="", horiz=TRUE)
   axis(side=4, at = bp, labels=histdata$Index)#,labels=histdata$mids)
-  mtext("Hedge error", side = 4, line = 1.9, col = 1)
+  mtext("Hedge afvigelse", side = 4, line = 1.9, col = 1)
   axis(side=3, at = pretty(c(xlm*0.9,xlm*0.1),n=10), line=-2, labels = paste(pretty(c(xlm*0.9,xlm*0.1),n=10)*100,"%"))
   par(new=TRUE)
   
@@ -131,12 +131,12 @@ hedgeerror_plotter <- function(hedgeerror,St,Vpf,strike,opttype_=1){
   ylim_top <- max(abs(Vpf))*0.9
   xlim_bot <- min(St)
   
-  plot(St,Vpf,  col=rgb(red = 0, green = 0, blue = 1, alpha = 0.5),xlab="S(T)-K",ylab="",xlim=c(xlim_bot,xlim_top),ylim=c(-ylim_top,ylim_top))
-  mtext(paste("# hegde points =",Nhedge), side = 3, line = 2, col = 1)
+  plot(St,Vpf,  col=rgb(red = 0, green = 0, blue = 1, alpha = 0.3),xlab="S(T)-K",ylab="",xlim=c(xlim_bot,xlim_top),ylim=c(-ylim_top,ylim_top))
+  mtext(paste("# hegde punkter =",Nhedge), side = 3, line = 2, col = 1)
   mtext(paste("r-mu =",r-mu), side = 3, line = 1, col = 1)
   mtext(paste("sigma-sigma_hedge =",sigma-sigma_hedge), side = 3, line = 0, col = 1)
-  mtext("Value of hedge portfolio", side = 2, line = 2, col = 1)
-  title("Discrete hedging of a call-option", line = 3.25)
+  mtext("Værdi af hedge portefolie", side = 2, line = 2, col = 1)
+  title("Diskret hedging af en option", line = 3.25)
   garbage <- function(X){ X[abs(X)>ylim_top/1.2]=NaN;return(X) }
   if (opttype_ == 1){
     points(xlim_bot:xlim_top,garbage(pmax(xlim_bot:xlim_top - strike,0)),type='l',lwd=3) 

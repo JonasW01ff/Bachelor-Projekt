@@ -447,7 +447,7 @@ SDEcreator <- function(kappa,theta,sigma2,n,Xt){
 print("VIK-data")
 getSymbols("^VIX",src="yahoo")
 X<-as.vector(VIX[,6])#head(VIX[,6],100)
-png(filename="QQ_VIX_vs_lnVIX.png",res=300,width = 3*480, height = 3*480)
+png(filename="QQ_VIX_vs_lnVIX.png",res=300,width = 4*480, height = 3*480)
 par(mfrow=c(1,2))
 qqnorm(X, pch = 1, frame = FALSE, main="Normal QQ-plot af VIX")
 qqline(X, col = "steelblue", lwd = 2)
@@ -766,7 +766,7 @@ hedgeerror_plotter <- function(hedgeerror,St,Vpf,strike,opttype_=1){
   xlm <- max(histdata$Data)*3
   bp <- barplot(height=histdata$Data,width=1,pos=0,xlim=c(xlm,0), axes=FALSE, frame.plot=FALSE,xlab="",ylab="",main="", horiz=TRUE)
   axis(side=4, at = bp, labels=histdata$Index)#,labels=histdata$mids)
-  mtext("Hedge error", side = 4, line = 1.9, col = 1)
+  mtext("Hedge afvigelse", side = 4, line = 1.9, col = 1)
   axis(side=3, at = pretty(c(xlm*0.9,xlm*0.1),n=10), line=-2, labels = paste(pretty(c(xlm*0.9,xlm*0.1),n=10)*100,"%"))
   par(new=TRUE)
   
@@ -778,8 +778,8 @@ hedgeerror_plotter <- function(hedgeerror,St,Vpf,strike,opttype_=1){
   #text(50,125,paste("# hegde points =",Nhedge),adj=0)
   #text(50,120,paste("r-mu =",r-mu),adj=0)
   #text(50,115,paste("sigma-sigma_hedge =",sigma-sigma_hedge),adj=0)
-  mtext("Value of hedge portfolio", side = 2, line = 2, col = 1)
-  title("Discrete hedging of a call-option", line = 3.25)
+  mtext("Værdi af hedge portefolie", side = 2, line = 2, col = 1)
+  title("Diskret hedging af en option", line = 3.25)
   garbage <- function(X){ X[abs(X)>ylim_top/1.2]=NaN;return(X) }
   if (opttype_ == 1){
     points(xlim_bot:xlim_top,garbage(pmax(xlim_bot:xlim_top - strike,0)),type='l',lwd=3) 
