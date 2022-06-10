@@ -33,7 +33,7 @@
 \def\thesissupervisorsecond{Poulsen}
 \def\thesissecondreaderfirst{Prof. Anders}
 \def\thesissecondreadersecond{And}
-\def\thesisdate{Juni 2022}
+\def\thesisdate{10. Juni 2022}
 
 
 %             /\               %
@@ -102,8 +102,8 @@
 	%\thesissecondreaderfirst\space \textsc{\thesissecondreadersecond}
 	\end{flushright}
 	\end{minipage}\\[4cm]
-	%\vfill
-	%{\large \thesisdate}\\
+	\vfill
+	{\large \thesisdate}\\
 	\clearpage
 \end{titlepage}
 
@@ -112,13 +112,13 @@
 \newpage
 \setcounter{section}{-1}
 \section{Indeledning}
-I denne afhandling bliver der lagt ud med studie om, hvorvidt en Ornstein-Uhlenbeck proces med mean-reversion passer godt til de data vi ser fra VIX og S\&P500, samt hvor præcis vi kan estimetre modellens parametre.
+I denne afhandling bliver der lagt ud med studie om, hvorvidt en Ornstein-Uhlenbeck proces med mean-reversion passer godt til de data vi ser fra VIX og S\&P500, samt hvor præcis vi kan estimere modellens parametre.
 
 Efter det bliver der taget et dyk ned i hvorvidt en geometrisk brownsk proces med drift i stedet for mean-reversion lader til passe med vores data, og dertil bliver der undersøgt, hvor præcis denne model er til at kunne delta-hedge call optioner. I denne del bliver tid-t priserne og optioners delta også udledt, ikke mindst gennem brugen af Itôs-formel.
 
 Til sidst kigger vi også på, hvad man kan gøre for at forbedre præcisionen gennem estimationen for den brownske bevægelses volatilitet.
 
-Gennem meget af denne afhandling gøres der brug af programmeringsproget R. Koden er her to delt. Afsnit 1 og 3 bruger filen "R code del 1.R", mens afsnit 2 bruger filen "Rolf\_Hedge\_kode.R". Disse filer sammen med dette latex document kan findes på github linket \href{https://github.com/JonasW01ff/Bachelor-Projekt}{https://github.com/JonasW01ff/Bachelor-Projekt}. Synes man, at billederne er lidt små, da kan de også findes i .png format inde på github linket.
+Gennem meget af denne afhandling gøres der brug af programmeringssproget R. Koden er her todelt. Afsnit 1 og 3 bruger filen "R code del 1.R", mens afsnit 2 bruger filen "Rolf\_Hedge\_kode.R". Disse filer sammen med dette latex dokument kan findes på GitHub linket \href{https://github.com/JonasW01ff/Bachelor-Projekt}{https://github.com/JonasW01ff/Bachelor-Projekt}. Synes man, at billederne er lidt små, da kan de også findes i .png format inde på GitHub linket.
 \newpage
 \section{Empirisk analyse af lineær SDE}
 \subsection{Gaussisk Ornstein-Uhlenbeck proces}
@@ -435,7 +435,7 @@ Lad os nu prøve at delta hedge på S\&P500
 
 \begin{figure}
     \centering
-    \includegraphics[width=3.5in]{1 product_call_meanrolling_meanEMVA}
+    \includegraphics[width=4in]{1 product_call_meanrolling_meanEMVA}
     \caption{Venstre: volatiliteten her er et rullende vindu af GBM'ens volatilitet, Højre: EWMA af venstre's udregninger, Begge: til sidst er der taget et gennemsnit for måneden (til venstre er det dermed et gennemsnit af volatiliteter)}
     \begin{verbatim}
         "-----------------------"                         
@@ -450,7 +450,7 @@ Lad os nu prøve at delta hedge på S\&P500
 \end{figure}
 \begin{figure}
     \centering
-    \includegraphics[width=3.5in]{2 product_call_meanrolling_meanEMVA}
+    \includegraphics[width=4in]{2 product_call_meanrolling_meanEMVA}
     \caption{Venstre: volatiliteten her er et rullende vindu af mean(VIX/100), Højre: EWMA af venstre's udregninger, Begge: til sidst er der taget et gennemsnit for måneden (der er altså tale om en gennemsnit af gennemsnit til venstre)}
     \begin{verbatim}
         "-----------------------"                         
@@ -469,11 +469,13 @@ Vi ser altså at det bedste resultat fremkommer ved, at man tager gennemsnittet 
 Både rullende vinduer med middelværdier, og eksponentielt vægtede rullende gennemsnit, lader ikke til at give specielt gode resultater på vores højre figur \ref{fig:monthGBM}, hvor der ses, at den gennemsnitslige fejl er på 104, og som ulig alle de andre ikke har hedge fejl, der ligger i det negative men snare alle er positive. Dette er allarmerende da vi har set fra simulationseksperimentet figur \ref{fig:my_label4} at forkerte $\sigma_\text{hedges}$ burde give negative hedge fejl, når vi kigger på call optioner som vi jo gør her.
 
 Dog er der ingen af vores forsøg i dette afsnit, der indikerer, at vores model faktisk passer (dvs. at vores S\&P500 er en geometrisk brownsk bevægelse). Havde det været det, ville vi have set hedge fejl der ligger trykt omkring 0 som set på venstre figur \ref{fig:my_label4}. Man kunne hurtigt skyde skylden på vores konstante $\sigma$ i modellen, da dette vil give en masse negative fejl som set i højre figur \ref{fig:my_label4}, hvor vi brugte et forkert $\sigma$, ligesom vi også ser her. Dette kan dog ikke forklare vores enorme hedge errors, der det meste af tiden udgør 3/4-del af størrelsen på vores tilbagediskonterede option. Vi må altså konkludere at S\&P500 ikke er en geomtrisk brownsk bevægelse.
-\newpage
-\section{Konklusion}
-Mens vores Black-Scholes model virker præcis som vi vil have den skal i vores simulations eksperiment, hvor vi sørger for, at teoriens antagelser om, at dataen følger en geometrisk brownsk bevægelse ikke er brudt. Da ser vi i praksis, at dette ikke er tilfældet. Et af problemerne kunne være at volatiliteten i virkeligheden nok afhænger af tiden; noget som vores model ikke kan tage højde for på nogen anden måde end at være skaleret med aktie kursen. Det samme kunne siges om driften (omend volatiliteten virker som et stører problem); især når vi ofte taler om bull and bear markets, hvor vi ved at driften har vendt sig.
 
-En model der roder bod på de bekymringer der er rejst her er Heston modellen. En idé til en forbedring af denne afhandling kunne derfor være at bruge den før nævnte model i stedet for Black-Scholes.
+\newpage
+
+\section{Konklusion}
+Mens vores Black-Scholes model virker præcis som vi vil have den skal i vores simulations eksperiment, hvor vi sørger for, at teoriens antagelser om, at dataen følger en geometrisk brownsk bevægelse ikke er brudt. Da ser vi i praksis, at dette ikke er tilfældet. Et af problemerne kunne være at volatiliteten i virkeligheden nok afhænger af tiden; noget som vores model ikke kan tage højde for på nogen anden måde end at være skaleret med aktiekursen. Det samme kunne siges om driften (omend volatiliteten virker som et større problem); især når vi ofte taler om bull and bear markets, hvor vi ved at driften har vendt sig.
+
+En model der råder bod på den bekymring der er rejst her omkring volatiliteten er Heston modellen. En idé til en forbedring af denne afhandling kunne derfor være at bruge den før nævnte model i stedet for Black-Scholes.
 \newpage
 
 
